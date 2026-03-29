@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "sync": "node scripts/sync-results.js",
-    "sync:dry": "node scripts/sync-results.js --dry-run"
+    "sync:dry": "node scripts/sync-results.js --dry-run",
+    "seed:matches": "node scripts/seed-matches.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",

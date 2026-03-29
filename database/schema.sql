@@ -126,7 +126,7 @@ aggregated AS (
     COUNT(*) FILTER (WHERE s.outcome = 'pending') AS pending,
     SUM(
       CASE WHEN s.outcome = 'correct'
-        THEN 10 * pm.multiplier
+        THEN 3 * pm.multiplier
         ELSE 0
       END
     ) AS total_points

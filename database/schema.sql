@@ -147,16 +147,26 @@ LEFT JOIN aggregated a ON a.team_id = t.id
 ORDER BY position;
 
 -- ──────────────────────────────────────────────────────────
--- 8. ROW LEVEL SECURITY (básico)
+-- 8. ROW LEVEL SECURITY
 -- ──────────────────────────────────────────────────────────
-ALTER TABLE bets       ENABLE ROW LEVEL SECURITY;
-ALTER TABLE predictions ENABLE ROW LEVEL SECURITY;
 
--- Leitura pública do ranking e partidas
-CREATE POLICY "public read ranking"    ON teams    FOR SELECT USING (true);
-CREATE POLICY "public read matches"    ON matches  FOR SELECT USING (true);
-CREATE POLICY "public read members"    ON members  FOR SELECT USING (true);
+-- Habilitar RLS em todas as tabelas
+ALTER TABLE teams             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE members           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE matches           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE phase_multipliers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE predictions       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE bets              ENABLE ROW LEVEL SECURITY;
 
--- Aposta: cada usuário gerencia apenas a própria
+-- Leitura pública (SELECT apenas)
+CREATE POLICY "public read teams"              ON teams             FOR SELECT USING (true);
+CREATE POLICY "public read members"            ON members           FOR SELECT USING (true);
+CREATE POLICY "public read matches"            ON matches           FOR SELECT USING (true);
+CREATE POLICY "public read phase_multipliers"  ON phase_multipliers FOR SELECT USING (true);
+CREATE POLICY "public read predictions"        ON predictions       FOR SELECT USING (true);
+CREATE POLICY "public read bets"               ON bets              FOR SELECT USING (true);
+
+-- Escrita em predictions e bets: apenas via service_role (scripts/backend)
+-- ou usuário autenticado para apostas próprias
 CREATE POLICY "own bet only" ON bets
-  FOR ALL USING (auth.jwt() ->> 'email' = user_email);
+  FOR INSERT WITH CHECK (auth.jwt() ->> 'email' = user_email);

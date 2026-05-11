@@ -11,7 +11,9 @@ world-cup-2026/
 ├── src/
 │   ├── App.jsx                 # Nav + roteamento entre páginas
 │   ├── lib/
-│   │   └── supabase.js         # Client Supabase
+│   │   ├── supabase.js         # Client real ou mock (controlado por env)
+│   │   ├── mock-supabase.js    # Implementação fake do client (só branch develop)
+│   │   └── mock-data.js        # Dados de demonstração (só branch develop)
 │   └── pages/
 │       ├── RankingPage.jsx     # Ranking dos times + previsões expansíveis
 │       └── TimesPage.jsx       # Detalhe dos 4 times + espaço de descrição
@@ -33,6 +35,32 @@ npm run dev
 ```
 
 A app sobe em `http://localhost:5173`.
+
+---
+
+## Modo demo (mock) × Supabase real
+
+Disponível apenas na branch `develop` (a `main` roda sempre contra Supabase).
+A app alterna entre **dados mockados** (para apresentação) e **Supabase real**
+via uma única variável no `.env`:
+
+```bash
+# .env
+VITE_USE_MOCK=true        # demo — usa src/lib/mock-data.js
+# VITE_USE_MOCK=false     # produção — usa Supabase
+```
+
+**Regras de fallback:**
+
+- `VITE_USE_MOCK=true` → sempre mock
+- `VITE_USE_MOCK=false` (ou ausente) **+** `VITE_SUPABASE_URL` ausente → cai no mock automaticamente
+- `VITE_USE_MOCK=false` **+** `VITE_SUPABASE_URL` setado → Supabase
+
+Quando estiver em modo demo, aparece um badge **`MODO DEMO`** amarelo no canto superior direito da nav.
+
+> Depois de mudar o `.env`, reinicie o `npm run dev` (Vite só lê env no startup).
+
+Os dados de demo estão em [src/lib/mock-data.js](../src/lib/mock-data.js) e cobrem ranking, partidas de ontem e previsões dos 4 times.
 
 ---
 

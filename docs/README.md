@@ -1,23 +1,26 @@
-# World Cup 2026 — Datarisk Bolão Interno
+# Copa dos Oráculos — Datarisk
 
-Competição interna de modelos preditivos para a Copa do Mundo 2026.
+Plataforma interna da Datarisk para a competição de modelos preditivos da Copa do Mundo 2026.
 
 ---
 
-## Estrutura do projeto
+## Estrutura
 
-```
+```text
 world-cup-2026/
 ├── src/
-│   ├── App.jsx                  # Roteamento entre páginas
+│   ├── App.jsx                 # Nav + roteamento entre páginas
+│   ├── lib/
+│   │   └── supabase.js         # Client Supabase
 │   └── pages/
-│       ├── RankingPage.jsx      # Ranking dos times com expansão de previsões
-│       └── BolaoPage.jsx        # Login + seleção de time + confirmação
+│       ├── RankingPage.jsx     # Ranking dos times + previsões expansíveis
+│       └── TimesPage.jsx       # Detalhe dos 4 times + espaço de descrição
 ├── database/
-│   └── schema.sql               # Schema PostgreSQL para Supabase
-├── docs/
-│   └── README.md
-└── package.json
+│   └── schema.sql              # Schema PostgreSQL para Supabase
+├── scripts/
+│   ├── seed-matches.js         # Popula partidas iniciais
+│   └── sync-results.js         # Atualiza resultados via football-data.org
+└── docs/README.md
 ```
 
 ---
@@ -25,42 +28,29 @@ world-cup-2026/
 ## Como rodar localmente
 
 ```bash
-# 1. Criar projeto Vite + React
-npm create vite@latest world-cup-2026 -- --template react
-cd world-cup-2026
-
-# 2. Instalar dependências
 npm install
-
-# 3. Copiar os arquivos de src/ para o projeto
-# (substituir App.jsx e adicionar a pasta pages/)
-
-# 4. Rodar
 npm run dev
 ```
 
+A app sobe em `http://localhost:5173`.
+
 ---
 
-## Supabase — setup (pendente)
+## Supabase — setup (produção)
 
-1. Criar projeto em https://supabase.com
-2. Executar `database/schema.sql` no SQL Editor
-3. Pegar as variáveis de ambiente:
-   ```
-   VITE_SUPABASE_URL=https://<project>.supabase.co
+1. Criar projeto em <https://supabase.com>
+2. Rodar `database/schema.sql` no SQL Editor
+3. Preencher `.env`:
+
+   ```bash
+   VITE_SUPABASE_URL=https://<projeto>.supabase.co
    VITE_SUPABASE_ANON_KEY=<anon-key>
+   SUPABASE_SERVICE_KEY=<service-role-key>  # só p/ scripts, nunca expor no front
+   FOOTBALL_DATA_KEY=<chave-football-data>
    ```
-4. Criar `.env` na raiz do projeto com as variáveis acima
-5. Instalar client: `npm install @supabase/supabase-js`
-6. Criar `src/lib/supabase.js`:
-   ```js
-   import { createClient } from "@supabase/supabase-js";
-   export const supabase = createClient(
-     import.meta.env.VITE_SUPABASE_URL,
-     import.meta.env.VITE_SUPABASE_ANON_KEY
-   );
-   ```
-7. Substituir dados mock nas páginas pelas queries ao Supabase
+
+4. Seed inicial: `npm run seed:matches`
+5. Sync de resultados: `npm run sync` (ou `npm run sync:dry` p/ testar)
 
 ---
 
@@ -73,18 +63,20 @@ npm run dev
 
 ---
 
-## Decisões em aberto
+## Times participantes
 
-- [ ] Confirmar pontuação base por acerto (atualmente 10 pts)
-- [ ] Definir deadline de submissão de previsões por fase
-- [ ] Política de empate no ranking (desempate por acertos em fases mais avançadas?)
-- [ ] Premiação do bolão
+| Time        | Membros                                                      |
+| ----------- | ------------------------------------------------------------ |
+| F.R.A.N.G.O | Sarah Barbosa, Robson José, Vinícius Raceputi                |
+| .DLL        | Diego Silva, Leandro Nogueira dos Santos, Luís Henrique Lima |
+| Oráculo     | Amaury Ribeiro, Ailton Jimenez Ferreira                      |
+| 99% Fé      | João Vitor Ribeiro, Lucas Müller                             |
 
 ---
 
 ## Próximos passos técnicos
 
-1. Conectar frontend ao Supabase (dados reais)
-2. Implementar autenticação real (Google OAuth via Supabase Auth)
-3. Deploy (Vercel ou Netlify)
-4. Formulário de submissão de previsões para os times
+1. Adicionar logos PNG dos times (substituir emojis em [TimesPage.jsx](../src/pages/TimesPage.jsx))
+2. Preencher descrição do modelo/estratégia de cada time
+3. Formulário de submissão de previsões para os times
+4. Deploy (Vercel ou Netlify)

@@ -1,6 +1,11 @@
-const yesterday = new Date();
-yesterday.setDate(yesterday.getDate() - 1);
-const y = yesterday.toISOString().slice(0, 10);
+const dayOffset = (n) => {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0, 10);
+};
+const d_2 = dayOffset(-2); // anteontem
+const d_1 = dayOffset(-1); // ontem
+const d1  = dayOffset(1);  // amanhã
 
 export const MOCK = {
   teams: [
@@ -23,31 +28,49 @@ export const MOCK = {
     { team_id: "fe",      name: "Lucas Müller" },
   ],
 
-  ranking: [
-    { team_id: "frango",  team_name: "F.R.A.N.G.O", position: 1, total_points: "165", wins: "8", losses: "2", pending: "2" },
-    { team_id: "dll",     team_name: ".DLL",        position: 2, total_points: "140", wins: "7", losses: "3", pending: "2" },
-    { team_id: "oraculo", team_name: "Oráculo",     position: 3, total_points: "118", wins: "6", losses: "3", pending: "3" },
-    { team_id: "fe",      team_name: "99% Fé",      position: 4, total_points: "95",  wins: "5", losses: "4", pending: "3" },
-  ],
-
   matches: [
-    { id: "match-1", home_team: "Brasil",  away_team: "Argentina",  result: "home", score: "2-1", match_date: `${y}T15:00:00+00:00`, phase: "group" },
-    { id: "match-2", home_team: "França",  away_team: "Alemanha",   result: "draw", score: "1-1", match_date: `${y}T18:00:00+00:00`, phase: "group" },
-    { id: "match-3", home_team: "Espanha", away_team: "Inglaterra", result: "pending", score: null, match_date: `${y}T21:00:00+00:00`, phase: "group" },
+    // Anteontem
+    { id: "m1", home_team: "Brasil",   away_team: "Argentina",  result: "home",    score: "2-1", match_date: `${d_2}T18:00:00+00:00`, phase: "group" },
+    // Ontem
+    { id: "m2", home_team: "França",   away_team: "Alemanha",   result: "draw",    score: "1-1", match_date: `${d_1}T15:00:00+00:00`, phase: "group" },
+    { id: "m3", home_team: "Espanha",  away_team: "Inglaterra", result: "home",    score: "2-0", match_date: `${d_1}T18:00:00+00:00`, phase: "group" },
+    { id: "m4", home_team: "Portugal", away_team: "Holanda",    result: "away",    score: "0-3", match_date: `${d_1}T21:00:00+00:00`, phase: "group" },
+    // Amanhã (pending)
+    { id: "m5", home_team: "Itália",   away_team: "Bélgica",    result: "pending", score: null,  match_date: `${d1}T15:00:00+00:00`,  phase: "group" },
+    { id: "m6", home_team: "México",   away_team: "Uruguai",    result: "pending", score: null,  match_date: `${d1}T18:00:00+00:00`,  phase: "group" },
   ],
 
   predictions: [
-    { team_id: "frango",  match_id: "match-1", prob_home: "65", prob_draw: "20", prob_away: "15" },
-    { team_id: "frango",  match_id: "match-2", prob_home: "30", prob_draw: "45", prob_away: "25" },
-    { team_id: "frango",  match_id: "match-3", prob_home: "50", prob_draw: "25", prob_away: "25" },
-    { team_id: "dll",     match_id: "match-1", prob_home: "60", prob_draw: "25", prob_away: "15" },
-    { team_id: "dll",     match_id: "match-2", prob_home: "35", prob_draw: "40", prob_away: "25" },
-    { team_id: "dll",     match_id: "match-3", prob_home: "45", prob_draw: "30", prob_away: "25" },
-    { team_id: "oraculo", match_id: "match-1", prob_home: "35", prob_draw: "30", prob_away: "35" },
-    { team_id: "oraculo", match_id: "match-2", prob_home: "25", prob_draw: "45", prob_away: "30" },
-    { team_id: "oraculo", match_id: "match-3", prob_home: "30", prob_draw: "35", prob_away: "35" },
-    { team_id: "fe",      match_id: "match-1", prob_home: "50", prob_draw: "30", prob_away: "20" },
-    { team_id: "fe",      match_id: "match-2", prob_home: "45", prob_draw: "25", prob_away: "30" },
-    { team_id: "fe",      match_id: "match-3", prob_home: "40", prob_draw: "30", prob_away: "30" },
+    // F.R.A.N.G.O — modelo forte: acerta tudo do passado
+    { team_id: "frango",  match_id: "m1", prob_home: "65", prob_draw: "20", prob_away: "15" },
+    { team_id: "frango",  match_id: "m2", prob_home: "30", prob_draw: "45", prob_away: "25" },
+    { team_id: "frango",  match_id: "m3", prob_home: "60", prob_draw: "25", prob_away: "15" },
+    { team_id: "frango",  match_id: "m4", prob_home: "20", prob_draw: "25", prob_away: "55" },
+    { team_id: "frango",  match_id: "m5", prob_home: "50", prob_draw: "30", prob_away: "20" },
+    { team_id: "frango",  match_id: "m6", prob_home: "45", prob_draw: "30", prob_away: "25" },
+
+    // .DLL — técnico: acerta tudo do passado
+    { team_id: "dll",     match_id: "m1", prob_home: "60", prob_draw: "25", prob_away: "15" },
+    { team_id: "dll",     match_id: "m2", prob_home: "35", prob_draw: "40", prob_away: "25" },
+    { team_id: "dll",     match_id: "m3", prob_home: "50", prob_draw: "25", prob_away: "25" },
+    { team_id: "dll",     match_id: "m4", prob_home: "30", prob_draw: "30", prob_away: "40" },
+    { team_id: "dll",     match_id: "m5", prob_home: "45", prob_draw: "30", prob_away: "25" },
+    { team_id: "dll",     match_id: "m6", prob_home: "40", prob_draw: "35", prob_away: "25" },
+
+    // Oráculo — médio: acerta a maioria
+    { team_id: "oraculo", match_id: "m1", prob_home: "45", prob_draw: "30", prob_away: "25" },
+    { team_id: "oraculo", match_id: "m2", prob_home: "25", prob_draw: "45", prob_away: "30" },
+    { team_id: "oraculo", match_id: "m3", prob_home: "45", prob_draw: "30", prob_away: "25" },
+    { team_id: "oraculo", match_id: "m4", prob_home: "25", prob_draw: "30", prob_away: "45" },
+    { team_id: "oraculo", match_id: "m5", prob_home: "30", prob_draw: "40", prob_away: "30" },
+    { team_id: "oraculo", match_id: "m6", prob_home: "35", prob_draw: "35", prob_away: "30" },
+
+    // 99% Fé — fé no time da casa, alguns erros
+    { team_id: "fe",      match_id: "m1", prob_home: "50", prob_draw: "30", prob_away: "20" },
+    { team_id: "fe",      match_id: "m2", prob_home: "45", prob_draw: "25", prob_away: "30" }, // errou (draw)
+    { team_id: "fe",      match_id: "m3", prob_home: "40", prob_draw: "30", prob_away: "30" },
+    { team_id: "fe",      match_id: "m4", prob_home: "55", prob_draw: "25", prob_away: "20" }, // errou (away)
+    { team_id: "fe",      match_id: "m5", prob_home: "40", prob_draw: "30", prob_away: "30" },
+    { team_id: "fe",      match_id: "m6", prob_home: "45", prob_draw: "30", prob_away: "25" },
   ],
 };

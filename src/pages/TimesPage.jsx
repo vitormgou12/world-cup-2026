@@ -4,7 +4,7 @@ const TIMES = [
     name: "F.R.A.N.G.O",
     subtitle: "Framework de Resultados e Análise Numérica de Gols e Odds",
     members: ["Sarah Barbosa", "Robson José", "Vinícius Raceputi"],
-    emoji: "🐓",
+    escudo: "/escudos/escudo-1.svg",
     color: "#16a34a",
     accent: "#15803d",
     text: "#ffffff",
@@ -15,7 +15,7 @@ const TIMES = [
     name: "99% Fé",
     subtitle: null,
     members: ["João Vitor Ribeiro", "Lucas Müller"],
-    emoji: "😇",
+    escudo: "/escudos/escudo-2.svg",
     color: "#facc15",
     accent: "#eab308",
     text: "#14532d",
@@ -26,7 +26,7 @@ const TIMES = [
     name: ".DLL",
     subtitle: null,
     members: ["Diego Silva", "Leandro Nogueira dos Santos", "Luís Henrique Lima"],
-    emoji: "🤖",
+    escudo: "/escudos/escudo-3.svg",
     color: "#16a34a",
     accent: "#15803d",
     text: "#ffffff",
@@ -37,7 +37,7 @@ const TIMES = [
     name: "Oráculo",
     subtitle: null,
     members: ["Amaury Ribeiro", "Ailton Jimenez Ferreira"],
-    emoji: "🔮",
+    escudo: "/escudos/escudo-4.svg",
     color: "#facc15",
     accent: "#eab308",
     text: "#14532d",
@@ -79,19 +79,22 @@ export default function TimesPage() {
             >
               <div
                 style={{
-                  width: 64,
-                  height: 64,
+                  width: 80,
+                  height: 80,
                   borderRadius: 12,
-                  background: time.accent,
+                  background: "rgba(255,255,255,0.15)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: 36,
                   flexShrink: 0,
+                  padding: 4,
                 }}
-                aria-hidden
               >
-                {time.emoji}
+                <img
+                  src={time.escudo}
+                  alt={`Escudo ${time.name}`}
+                  style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 2 }}>{time.name}</h2>

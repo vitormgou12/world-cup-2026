@@ -1,5 +1,21 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
+import { flagUrl } from "../lib/country-flags";
+
+function TeamFlag({ name }) {
+  const src = flagUrl(name, 40);
+  if (!src) return null;
+  return (
+    <img
+      src={src}
+      alt=""
+      width={20}
+      height={14}
+      style={{ borderRadius: 2, objectFit: "cover", verticalAlign: "middle" }}
+      loading="lazy"
+    />
+  );
+}
 
 const today = new Date();
 const yesterday = new Date(today);
@@ -95,8 +111,10 @@ function PredictionRow({ p, showResult }) {
   return (
     <div style={{ marginBottom: 14 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4, gap: 8, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 13, fontWeight: 600 }}>
-          {p.match}
+        <span style={{ fontSize: 13, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <TeamFlag name={p.home_team} />
+          {p.home_team} <span style={{ color: "#475569" }}>×</span> {p.away_team}
+          <TeamFlag name={p.away_team} />
           <span style={{ marginLeft: 8, fontSize: 11, color: "#64748b", fontWeight: 500 }}>
             {fmtDate(p.match_date)}
           </span>
@@ -191,7 +209,8 @@ function buildTeams({ teams, members, matches, predictions }) {
           ? "pending"
           : predicted === match?.result ? "correct" : "wrong";
         return {
-          match:      `${match?.home_team} x ${match?.away_team}`,
+          home_team:  match?.home_team,
+          away_team:  match?.away_team,
           match_date: match?.match_date,
           phase:      match?.phase ?? "group",
           home, draw, away,

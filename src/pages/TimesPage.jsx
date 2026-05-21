@@ -8,7 +8,7 @@ const TIMES = [
     color: "#16a34a",
     accent: "#15803d",
     text: "#ffffff",
-    description: "",
+    description: "Teste",
   },
   {
     id: "fe",

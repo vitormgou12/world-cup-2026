@@ -34,6 +34,9 @@ const PHASE_MULTIPLIERS = {
 };
 const POINTS_PER_CORRECT = 1;
 
+// Times de teste (baselines) — exibidos separados e fora do ranking do bolão
+const TEST_TEAMS = new Set(["Naive Random", "Underdog Predictor"]);
+
 const STATUS_LABELS = {
   correct: { color: "#22c55e", text: "✓ Acertou" },
   wrong:   { color: "#ef4444", text: "✗ Errou" },
@@ -235,13 +238,18 @@ function buildTeams({ teams, members, matches, predictions }) {
       members: teamMembers,
       predictions: teamPreds,
       wins, losses, pending, points,
+      isTest: TEST_TEAMS.has(t.name),
     };
   });
 
+  // Separa os times do bolão dos times de teste (baselines)
+  const competing = enriched.filter(t => !t.isTest);
+  const testing   = enriched.filter(t => t.isTest);
+
   // Ordena por pontos desc; ranking estilo RANK() (empates dividem posição)
-  enriched.sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
+  competing.sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
   let lastPoints = null, lastPos = 0;
-  enriched.forEach((t, i) => {
+  competing.forEach((t, i) => {
     if (t.points !== lastPoints) {
       lastPos = i + 1;
       lastPoints = t.points;
@@ -249,7 +257,11 @@ function buildTeams({ teams, members, matches, predictions }) {
     t.position = lastPos;
   });
 
-  return enriched;
+  // Times de teste não têm posição no ranking; ficam por último
+  testing.sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
+  testing.forEach(t => { t.position = null; });
+
+  return [...competing, ...testing];
 }
 
 export default function RankingPage() {
@@ -298,25 +310,52 @@ export default function RankingPage() {
               <span>Pontuação</span>
             </div>
 
-            {teams.map((team) => (
-              <div key={team.id} style={{ marginBottom: 8 }}>
+            {teams.map((team, idx) => {
+              const firstTest = team.isTest && (idx === 0 || !teams[idx - 1].isTest);
+              return (
+              <div key={team.id}>
+                {firstTest && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "20px 0 10px", color: "#64748b" }}>
+                    <div style={{ flex: 1, height: 1, background: "#1e293b" }} />
+                    <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                      Modelos de teste · fora do bolão
+                    </span>
+                    <div style={{ flex: 1, height: 1, background: "#1e293b" }} />
+                  </div>
+                )}
+                <div style={{ marginBottom: 8, opacity: team.isTest ? 0.7 : 1 }}>
                 <div
                   onClick={() => setExpanded(expanded === team.id ? null : team.id)}
                   style={{
                     display: "grid", gridTemplateColumns: "40px 32px 1fr 60px 50px 50px 50px 140px",
                     gap: 8, padding: "14px 12px", borderRadius: 10, cursor: "pointer",
                     background: expanded === team.id ? "#1e293b" : "#1e293b88",
-                    border: `1px solid ${expanded === team.id ? "#3b82f6" : "#334155"}`,
+                    border: `1px ${team.isTest ? "dashed" : "solid"} ${expanded === team.id ? "#3b82f6" : "#334155"}`,
                     alignItems: "center", transition: "all 0.15s"
                   }}
                 >
-                  <span style={{ fontWeight: 700, fontSize: 18, color: team.position <= 3 ? "#f59e0b" : "#64748b" }}>
-                    {team.position}
+                  <span style={{ fontWeight: 700, fontSize: 18, color: !team.isTest && team.position <= 3 ? "#f59e0b" : "#64748b" }}>
+                    {team.isTest ? "—" : team.position}
                   </span>
-                  <PositionBadge current={team.position} previous={team.position} />
+                  {team.isTest
+                    ? <span style={{ color: "#6b7280", fontSize: 13 }}>—</span>
+                    : <PositionBadge current={team.position} previous={team.position} />}
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: 15 }}>{team.name}</div>
-                    <div style={{ color: "#64748b", fontSize: 12 }}>{team.members.join(", ") || "—"}</div>
+                    <div style={{ fontWeight: 600, fontSize: 15, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      {team.name}
+                      {team.isTest && (
+                        <span style={{
+                          fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5,
+                          color: "#94a3b8", background: "#0f172a", border: "1px solid #334155",
+                          padding: "1px 7px", borderRadius: 4,
+                        }}>
+                          Teste
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ color: "#64748b", fontSize: 12 }}>
+                      {team.isTest ? "Baseline · não pontua no bolão" : (team.members.join(", ") || "—")}
+                    </div>
                   </div>
                   <span style={{ textAlign: "center", fontWeight: 700, fontSize: 16, color: "#3b82f6" }}>{team.points}</span>
                   <span style={{ textAlign: "center", color: "#22c55e", fontWeight: 600 }}>{team.wins}</span>
@@ -328,8 +367,10 @@ export default function RankingPage() {
                 </div>
 
                 {expanded === team.id && <ExpandedTeam team={team} />}
+                </div>
               </div>
-            ))}
+              );
+            })}
           </>
         )}
       </div>

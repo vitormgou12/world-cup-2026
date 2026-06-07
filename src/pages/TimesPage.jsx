@@ -211,7 +211,7 @@ const TIMES = [
     id: "frango",
     name: "F.R.A.N.G.O",
     subtitle: "Framework de Resultados e Análise Numérica de Gols e Odds",
-    members: ["Sarah Barbosa", "Robson José", "Vinícius Raceputi"],
+    members: ["Sarah Barbosa", "Robson José", "Vinícius Receputi"],
     escudo: "/escudos/escudo-1.svg",
     color: "#16a34a",
     accent: "#15803d",

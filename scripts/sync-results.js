@@ -3,10 +3,15 @@
  * Busca resultados da Copa do Mundo via football-data.org e atualiza o Supabase.
  *
  * Uso:
- *   node scripts/sync-results.js                        → ontem, salva no banco
- *   node scripts/sync-results.js --dry-run              → ontem, só exibe (não salva)
- *   node scripts/sync-results.js --date=2026-06-15      → data específica
+ *   node scripts/sync-results.js                        → janela de ontem→hoje (UTC), salva no banco
+ *   node scripts/sync-results.js --dry-run              → mesma janela, só exibe (não salva)
+ *   node scripts/sync-results.js --date=2026-06-15      → data específica (backfill)
  *   node scripts/sync-results.js --mock --dry-run       → teste sem API nem banco
+ *
+ * Por que a janela ontem→hoje (UTC) e não só "ontem"? Um dia no horário de
+ * Brasília (UTC-3) cruza dois dias em UTC: um jogo às 22h BRT cai no dia seguinte
+ * em UTC. Buscar a janela garante que nenhuma partida recém-finalizada escape.
+ * O upsert por api_id é idempotente, então rodar de novo não duplica nada.
  *
  * Variáveis de ambiente necessárias (.env):
  *   FOOTBALL_DATA_KEY     → chave gratuita em football-data.org/client/register
@@ -31,22 +36,15 @@ const SUPABASE_SERVICE = process.env.SUPABASE_SERVICE_KEY;
 
 const BASE_URL = "https://api.football-data.org/v4";
 
-// Mapeamento de fase da API → fase do nosso schema
-const PHASE_MAP = {
-  "Group Stage":     "group",
-  "Round of 32":     "round_of_32",
-  "Round of 16":     "round_of_16",
-  "Quarter-finals":  "quarterfinal",
-  "Semi-finals":     "semifinal",
-  "Final":           "final",
-};
-
 // ─── Helpers ───────────────────────────────────────────────
-function getTargetDate() {
-  if (dateArg) return dateArg;
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  return d.toISOString().slice(0, 10);
+// Retorna { from, to } em ISO (YYYY-MM-DD). Com --date, busca só aquele dia;
+// sem ele, busca a janela ontem→hoje em UTC (ver nota no topo do arquivo).
+function getTargetRange() {
+  if (dateArg) return { from: dateArg, to: dateArg };
+  const to = new Date();
+  const from = new Date(to);
+  from.setUTCDate(from.getUTCDate() - 1);
+  return { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) };
 }
 
 function formatDateBR(isoDate) {
@@ -54,8 +52,8 @@ function formatDateBR(isoDate) {
 }
 
 // ─── Busca na API ──────────────────────────────────────────
-async function fetchMatches(date) {
-  const url = `${BASE_URL}/matches?dateFrom=${date}&dateTo=${date}&competitions=WC`;
+async function fetchMatches(from, to) {
+  const url = `${BASE_URL}/matches?dateFrom=${from}&dateTo=${to}&competitions=WC`;
   const res  = await fetch(url, {
     headers: { "X-Auth-Token": API_KEY },
   });
@@ -84,11 +82,6 @@ function formatScore(match) {
   const gh   = match.score.fullTime.home;
   const ga   = match.score.fullTime.away;
   return `${home} ${gh} x ${ga} ${away}`;
-}
-
-function mapPhase(match) {
-  const stage = match.stage ?? match.group ?? "Group Stage";
-  return PHASE_MAP[stage] ?? "group";
 }
 
 // ─── Dados mock para teste local ───────────────────────────
@@ -124,11 +117,12 @@ const MOCK_MATCHES = [
 
 // ─── Main ──────────────────────────────────────────────────
 async function run() {
-  const date  = getTargetDate();
-  const flags = [DRY_RUN && "DRY-RUN", USE_MOCK && "MOCK"].filter(Boolean).join(" + ");
+  const { from, to } = getTargetRange();
+  const period = from === to ? formatDateBR(from) : `${formatDateBR(from)} → ${formatDateBR(to)}`;
+  const flags  = [DRY_RUN && "DRY-RUN", USE_MOCK && "MOCK"].filter(Boolean).join(" + ");
 
   console.log("\n🌍  Copa Datarisk 2026 — Sync de Resultados");
-  console.log(`📅  Data alvo : ${formatDateBR(date)}${flags ? `  [${flags}]` : ""}\n`);
+  console.log(`📅  Período : ${period} (UTC)${flags ? `  [${flags}]` : ""}\n`);
 
   // 1. Busca partidas
   let matches;
@@ -143,7 +137,7 @@ async function run() {
       process.exit(1);
     }
     console.log("🔍  Consultando football-data.org...");
-    matches = await fetchMatches(date);
+    matches = await fetchMatches(from, to);
   }
 
   console.log(`   ${matches.length} partida(s) encontrada(s)\n`);
@@ -177,7 +171,9 @@ async function run() {
       result,
       match_date: m.utcDate,
       api_id    : String(m.id),
-      phase     : mapPhase(m),
+      // phase NÃO é enviado de propósito: já foi definido pelo seed:matches.
+      // Reenviá-lo aqui reescreveria a fase (a API v4 usa enum UPPER_CASE,
+      // ex.: LAST_16/QUARTER_FINALS) e quebraria o multiplicador de pontos.
     });
   }
 

@@ -1,0 +1,46 @@
+name: Sync de resultados (Copa)
+
+# Atualiza os resultados das partidas no Supabase a partir da football-data.org.
+on:
+  schedule:
+    # GitHub Actions usa UTC. O Brasil é UTC-3 o ano todo (sem horário de verão),
+    # então 23:59 BRT = 02:59 UTC do dia seguinte.
+    # Obs.: o agendamento do GitHub pode atrasar alguns minutos em horários de pico.
+    - cron: "59 2 * * *"
+  # Permite disparar manualmente pela aba Actions, com data opcional para backfill.
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Data específica (YYYY-MM-DD) para reprocessar — opcional"
+        required: false
+        type: string
+
+# Evita execuções sobrepostas (ex.: cron + disparo manual ao mesmo tempo).
+concurrency:
+  group: sync-results
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Sync de resultados
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          FOOTBALL_DATA_KEY: ${{ secrets.FOOTBALL_DATA_KEY }}
+        run: |
+          if [ -n "${{ inputs.date }}" ]; then
+            node scripts/sync-results.js --date="${{ inputs.date }}"
+          else
+            node scripts/sync-results.js
+          fi

@@ -179,7 +179,11 @@ function ExpandedTeam({ team }) {
   const lists = {
     lastDay:  team.predictions.filter(p => sameDay(p.match_date, yesterdayStr)),
     history:  team.predictions.filter(p => p.status !== "pending"),
-    upcoming: team.predictions.filter(p => p.status === "pending"),
+    // Próximos: data crescente (jogo mais próximo primeiro). As demais abas
+    // herdam a ordem decrescente padrão (mais recente no topo).
+    upcoming: team.predictions
+      .filter(p => p.status === "pending")
+      .sort((a, b) => (a.match_date ?? "").localeCompare(b.match_date ?? "")),
   };
   const showResult = tab !== "upcoming";
   const empty = {

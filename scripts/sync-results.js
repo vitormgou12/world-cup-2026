@@ -13,6 +13,9 @@
  * em UTC. Buscar a janela garante que nenhuma partida recém-finalizada escape.
  * O upsert por api_id é idempotente, então rodar de novo não duplica nada.
  *
+ * Obs.: o dateTo da football-data.org é EXCLUSIVO — fetchMatches() soma +1 dia
+ * ao enviá-lo para que o último dia da janela seja incluído por completo.
+ *
  * Variáveis de ambiente necessárias (.env):
  *   FOOTBALL_DATA_KEY     → chave gratuita em football-data.org/client/register
  *   VITE_SUPABASE_URL     → URL do projeto Supabase
@@ -37,14 +40,19 @@ const SUPABASE_SERVICE = process.env.SUPABASE_SERVICE_KEY;
 const BASE_URL = "https://api.football-data.org/v4";
 
 // ─── Helpers ───────────────────────────────────────────────
-// Retorna { from, to } em ISO (YYYY-MM-DD). Com --date, busca só aquele dia;
-// sem ele, busca a janela ontem→hoje em UTC (ver nota no topo do arquivo).
+// Soma `days` a uma data 'YYYY-MM-DD' e devolve 'YYYY-MM-DD' (UTC).
+function addDaysUTC(isoDate, days) {
+  const d = new Date(`${isoDate}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+// Janela-alvo INCLUSIVA em UTC. Com --date, é só aquele dia; sem ele,
+// é ontem→hoje (ver nota no topo do arquivo).
 function getTargetRange() {
   if (dateArg) return { from: dateArg, to: dateArg };
-  const to = new Date();
-  const from = new Date(to);
-  from.setUTCDate(from.getUTCDate() - 1);
-  return { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) };
+  const today = new Date().toISOString().slice(0, 10);
+  return { from: addDaysUTC(today, -1), to: today };
 }
 
 function formatDateBR(isoDate) {
@@ -53,7 +61,10 @@ function formatDateBR(isoDate) {
 
 // ─── Busca na API ──────────────────────────────────────────
 async function fetchMatches(from, to) {
-  const url = `${BASE_URL}/matches?dateFrom=${from}&dateTo=${to}&competitions=WC`;
+  // ATENÇÃO: o dateTo da football-data.org é EXCLUSIVO (corta no início do dia
+  // informado). Para incluir o dia `to` inteiro, somamos 1 dia ao enviar.
+  const dateTo = addDaysUTC(to, 1);
+  const url = `${BASE_URL}/matches?dateFrom=${from}&dateTo=${dateTo}&competitions=WC`;
   const res  = await fetch(url, {
     headers: { "X-Auth-Token": API_KEY },
   });

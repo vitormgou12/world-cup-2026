@@ -17,16 +17,24 @@ function TeamFlag({ name }) {
   );
 }
 
-const today = new Date();
-const yesterday = new Date(today);
-yesterday.setDate(yesterday.getDate() - 1);
-const yesterdayStr = yesterday.toISOString().slice(0, 10);
+// Datas são exibidas e agrupadas no fuso de Brasília (a Copa é evento BR).
+// match_date é guardado em UTC no banco — convertemos para BRT só na exibição.
+const TZ = "America/Sao_Paulo";
+
+// Retorna 'YYYY-MM-DD' da data no fuso de Brasília (en-CA usa esse formato).
+const brtDay = (d) =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(new Date(d));
+
+// "ontem" no calendário de Brasília
+const yesterdayStr = brtDay(new Date(Date.now() - 24 * 60 * 60 * 1000));
 
 const fmtDate = (iso) =>
-  iso ? iso.slice(0, 10).split("-").reverse().join("/") : "—";
+  iso ? brtDay(iso).split("-").reverse().join("/") : "—";
 
 const sameDay = (iso, refStr) =>
-  iso && iso.slice(0, 10) === refStr;
+  iso && brtDay(iso) === refStr;
 
 const PHASE_MULTIPLIERS = {
   group: 1, round_of_32: 1.5, round_of_16: 2,

@@ -4,9 +4,9 @@ name: Sync de resultados (Copa)
 on:
   schedule:
     # GitHub Actions usa UTC. O Brasil é UTC-3 o ano todo (sem horário de verão),
-    # então 23:59 BRT = 02:59 UTC do dia seguinte.
+    # então 06:00 BRT = 09:00 UTC.
     # Obs.: o agendamento do GitHub pode atrasar alguns minutos em horários de pico.
-    - cron: "59 2 * * *"
+    - cron: "0 9 * * *"
   # Permite disparar manualmente pela aba Actions, com data opcional para backfill.
   workflow_dispatch:
     inputs:

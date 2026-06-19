@@ -206,6 +206,14 @@ function ExpandedTeam({ team }) {
 function buildTeams({ teams, members, matches, predictions }) {
   const matchById = new Map((matches || []).map(m => [m.id, m]));
 
+  // Dia mais recente (BRT) com algum resultado — base do indicador de movimento.
+  // A posição "anterior" desconsidera os jogos desse dia, para mostrar como o
+  // ranking mudou após a última rodada de resultados.
+  const finishedDays = (matches || [])
+    .filter(m => m.result && m.result !== "pending" && m.match_date)
+    .map(m => brtDay(m.match_date));
+  const lastResultDay = finishedDays.length ? finishedDays.sort().at(-1) : null;
+
   const enriched = (teams || []).map(t => {
     const teamMembers = (members || [])
       .filter(m => m.team_id === t.id)
@@ -235,12 +243,15 @@ function buildTeams({ teams, members, matches, predictions }) {
       })
       .sort((a, b) => (b.match_date ?? "").localeCompare(a.match_date ?? ""));
 
-    let wins = 0, losses = 0, pending = 0, points = 0;
+    let wins = 0, losses = 0, pending = 0, points = 0, prevPoints = 0;
     for (const p of teamPreds) {
-      if (p.status === "pending") pending++;
-      else if (p.status === "correct") {
+      if (p.status === "pending") { pending++; continue; }
+      if (p.status === "correct") {
         wins++;
-        points += POINTS_PER_CORRECT * (PHASE_MULTIPLIERS[p.phase] ?? 1);
+        const pts = POINTS_PER_CORRECT * (PHASE_MULTIPLIERS[p.phase] ?? 1);
+        points += pts;
+        // Pontuação de antes do último dia de jogos (para o indicador de posição)
+        if (lastResultDay && brtDay(p.match_date) !== lastResultDay) prevPoints += pts;
       } else losses++;
     }
 
@@ -249,7 +260,7 @@ function buildTeams({ teams, members, matches, predictions }) {
       name:    t.name,
       members: teamMembers,
       predictions: teamPreds,
-      wins, losses, pending, points,
+      wins, losses, pending, points, prevPoints,
       isTest: TEST_TEAMS.has(t.name),
     };
   });
@@ -267,6 +278,17 @@ function buildTeams({ teams, members, matches, predictions }) {
       lastPoints = t.points;
     }
     t.position = lastPos;
+  });
+
+  // Posição de antes do último dia (mesmo critério RANK) → subiu/manteve/desceu
+  const byPrev = [...competing].sort((a, b) => b.prevPoints - a.prevPoints || a.name.localeCompare(b.name));
+  let lastPrev = null, lastPrevPos = 0;
+  byPrev.forEach((t, i) => {
+    if (t.prevPoints !== lastPrev) {
+      lastPrevPos = i + 1;
+      lastPrev = t.prevPoints;
+    }
+    t.prevPosition = lastPrevPos;
   });
 
   // Times de teste não têm posição no ranking; ficam por último
@@ -351,7 +373,7 @@ export default function RankingPage() {
                   </span>
                   {team.isTest
                     ? <span style={{ color: "#6b7280", fontSize: 13 }}>—</span>
-                    : <PositionBadge current={team.position} previous={team.position} />}
+                    : <PositionBadge current={team.position} previous={team.prevPosition} />}
                   <div>
                     <div style={{ fontWeight: 600, fontSize: 15, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                       {team.name}

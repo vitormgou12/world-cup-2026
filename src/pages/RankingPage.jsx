@@ -368,7 +368,7 @@ export default function RankingPage() {
                     alignItems: "center", transition: "all 0.15s"
                   }}
                 >
-                  <span style={{ fontWeight: 700, fontSize: 18, color: !team.isTest && team.position <= 3 ? "#f59e0b" : "#64748b" }}>
+                  <span style={{ fontWeight: 700, fontSize: 18, color: team.isTest ? "#64748b" : "#f59e0b" }}>
                     {team.isTest ? "—" : team.position}
                   </span>
                   {team.isTest

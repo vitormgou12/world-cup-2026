@@ -80,10 +80,24 @@ async function fetchMatches(from, to) {
 function mapResult(match) {
   if (match.status !== "FINISHED") return null;
 
+  // Se o jogo terminou empatado e foi para a disputa de pênaltis, o resultado base é empate (draw)
+  if (match.score?.duration === "PENALTY_SHOOTOUT") {
+    return "draw";
+  }
+
   const winner = match.score.winner;
   if (winner === "HOME_TEAM") return "home";
   if (winner === "AWAY_TEAM") return "away";
   if (winner === "DRAW")      return "draw";
+  return null;
+}
+
+function getPenaltyWinner(match) {
+  if (match.status !== "FINISHED" || match.score?.duration !== "PENALTY_SHOOTOUT") return null;
+
+  const winner = match.score.winner;
+  if (winner === "HOME_TEAM") return "home";
+  if (winner === "AWAY_TEAM") return "away";
   return null;
 }
 
@@ -92,6 +106,16 @@ function formatScore(match) {
   const away = match.awayTeam.name;
   const gh   = match.score.fullTime.home;
   const ga   = match.score.fullTime.away;
+
+  if (match.score?.duration === "PENALTY_SHOOTOUT" && match.score.penalties) {
+    const ph = match.score.penalties.home;
+    const pa = match.score.penalties.away;
+    // Subtrai os gols de pênalti do total (já que a API soma no fullTime)
+    const regularHome = gh - ph;
+    const regularAway = ga - pa;
+    return `${home} ${regularHome} (${ph}) x (${pa}) ${regularAway} ${away}`;
+  }
+
   return `${home} ${gh} x ${ga} ${away}`;
 }
 
@@ -180,6 +204,7 @@ async function run() {
       away_team : m.awayTeam.name,
       score,
       result,
+      penalty_winner: getPenaltyWinner(m),
       match_date: m.utcDate,
       api_id    : String(m.id),
       // phase NÃO é enviado de propósito: já foi definido pelo seed:matches.

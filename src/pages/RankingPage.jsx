@@ -88,14 +88,40 @@ function PositionBadge({ current, previous }) {
   return <span style={{ color: "#6b7280", fontSize: 13 }}>—</span>;
 }
 
-function ProbBar({ home, draw, away, status }) {
+function ProbBar({ home, draw, away, status, penaltyStatus, phaseMultiplier }) {
   const colors = { home: "#3b82f6", draw: "#f59e0b", away: "#8b5cf6" };
   const winner = [
     { val: home, key: "home" },
     { val: draw, key: "draw" },
     { val: away, key: "away" },
   ].reduce((a, b) => (b.val > a.val ? b : a));
-  const label = STATUS_LABELS[status];
+
+  if (status === "pending") {
+    return (
+      <div style={{ marginBottom: 6 }}>
+        <div style={{ display: "flex", height: 18, borderRadius: 4, overflow: "hidden", gap: 1 }}>
+          {[{ k: "home", v: home }, { k: "draw", v: draw }, { k: "away", v: away }].map(({ k, v }) => (
+            <div key={k} style={{
+              width: `${v}%`, background: colors[k], opacity: winner.key === k ? 1 : 0.5,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 10, color: "#fff", fontWeight: 600
+            }}>{v > 10 ? `${v}%` : ""}</div>
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: 8, fontSize: 11, marginTop: 2, color: "#9ca3af", alignItems: "center" }}>
+          <span>Casa {home}%</span><span>Emp {draw}%</span><span>Fora {away}%</span>
+          <span style={{ marginLeft: "auto", color: "#f59e0b", fontWeight: 600 }}>
+            ⏳ Aguardando
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  const isCorrect = status === "correct";
+  const basePts = isCorrect ? 1 * phaseMultiplier : 0;
+  const penaltyPts = penaltyStatus === "correct" ? 1 * phaseMultiplier : 0;
+  const totalPts = basePts + penaltyPts;
 
   return (
     <div style={{ marginBottom: 6 }}>
@@ -108,17 +134,59 @@ function ProbBar({ home, draw, away, status }) {
           }}>{v > 10 ? `${v}%` : ""}</div>
         ))}
       </div>
-      <div style={{ display: "flex", gap: 8, fontSize: 11, marginTop: 2, color: "#9ca3af" }}>
+      <div style={{ display: "flex", gap: 8, fontSize: 11, marginTop: 2, color: "#9ca3af", alignItems: "center" }}>
         <span>Casa {home}%</span><span>Emp {draw}%</span><span>Fora {away}%</span>
-        <span style={{ marginLeft: "auto", color: label.color, fontWeight: 600 }}>
-          {label.text}
-        </span>
+        
+        <div style={{ marginLeft: "auto", display: "flex", gap: 6, alignItems: "center", fontWeight: 600 }}>
+          <span style={{ color: isCorrect ? "#22c55e" : "#ef4444" }}>
+            {isCorrect ? "✓ Acertou Resultado" : "✗ Errou Resultado"}
+          </span>
+          {penaltyStatus && (
+            <span style={{ color: penaltyStatus === "correct" ? "#22c55e" : "#ef4444" }}>
+              {penaltyStatus === "correct" ? ", ✓ Acertou Pênaltis" : ", ✗ Errou Pênaltis"}
+            </span>
+          )}
+          <span style={{ 
+            color: totalPts > 0 ? "#3b82f6" : "#64748b", 
+            marginLeft: 4, 
+            background: totalPts > 0 ? "#1e3a8a33" : "#1e293b",
+            padding: "2px 8px",
+            borderRadius: 4,
+            fontSize: 10,
+            border: `1px solid ${totalPts > 0 ? "#3b82f644" : "#334155"}`
+          }}>
+            {totalPts > 0 ? `+${totalPts} pts` : "0 pts"}
+          </span>
+        </div>
       </div>
     </div>
   );
 }
 
+function formatDisplayScore(scoreStr) {
+  if (!scoreStr) return "Pendente";
+  
+  // Captura o padrão "Time Casa 4 (3) x (4) 5 Time Fora"
+  const match = scoreStr.match(/^(.+?)\s+(\d+)\s*\((\d+)\)\s*x\s*\((\d+)\)\s+(\d+)\s+(.+?)$/);
+  if (match) {
+    const [, homeTeam, ghTotal, ph, pa, gaTotal, awayTeam] = match;
+    const gh = parseInt(ghTotal, 10);
+    const ga = parseInt(gaTotal, 10);
+    const penaltiesHome = parseInt(ph, 10);
+    const penaltiesAway = parseInt(pa, 10);
+    
+    // Se o placar salvo no banco tem a soma dos pênaltis, subtrai para exibir a bola rolando
+    const regularHome = gh >= penaltiesHome ? gh - penaltiesHome : gh;
+    const regularAway = ga >= penaltiesAway ? ga - penaltiesAway : ga;
+    
+    return `${homeTeam} ${regularHome} (${ph}) x (${pa}) ${regularAway} ${awayTeam}`;
+  }
+  
+  return scoreStr;
+}
+
 function PredictionRow({ p, showResult }) {
+  const multiplier = PHASE_MULTIPLIERS[p.phase] ?? 1;
   return (
     <div style={{ marginBottom: 14 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4, gap: 8, flexWrap: "wrap" }}>
@@ -132,11 +200,18 @@ function PredictionRow({ p, showResult }) {
         </span>
         {showResult && (
           <span style={{ fontSize: 12, color: "#94a3b8", background: "#1e293b", padding: "2px 8px", borderRadius: 4 }}>
-            Resultado: <strong style={{ color: "#f1f5f9" }}>{p.score ?? "Pendente"}</strong>
+            Resultado: <strong style={{ color: "#f1f5f9" }}>{formatDisplayScore(p.score)}</strong>
           </span>
         )}
       </div>
-      <ProbBar home={p.home} draw={p.draw} away={p.away} status={p.status} />
+      <ProbBar 
+        home={p.home} 
+        draw={p.draw} 
+        away={p.away} 
+        status={p.status} 
+        penaltyStatus={p.penaltyStatus} 
+        phaseMultiplier={multiplier}
+      />
     </div>
   );
 }
@@ -231,6 +306,14 @@ function buildTeams({ teams, members, matches, predictions }) {
         const status = match?.result === "pending"
           ? "pending"
           : predicted === match?.result ? "correct" : "wrong";
+
+        let penaltyStatus = null;
+        if (match?.result === "draw" && match?.penalty_winner) {
+          const wonPenalty = (match.penalty_winner === "home" && home > away) ||
+                             (match.penalty_winner === "away" && away > home);
+          penaltyStatus = wonPenalty ? "correct" : "wrong";
+        }
+
         return {
           home_team:  match?.home_team,
           away_team:  match?.away_team,
@@ -238,6 +321,7 @@ function buildTeams({ teams, members, matches, predictions }) {
           phase:      match?.phase ?? "group",
           home, draw, away,
           status,
+          penaltyStatus,
           score: match?.score,
         };
       })
@@ -246,13 +330,24 @@ function buildTeams({ teams, members, matches, predictions }) {
     let wins = 0, losses = 0, pending = 0, points = 0, prevPoints = 0;
     for (const p of teamPreds) {
       if (p.status === "pending") { pending++; continue; }
+      
+      let matchPts = 0;
       if (p.status === "correct") {
         wins++;
-        const pts = POINTS_PER_CORRECT * (PHASE_MULTIPLIERS[p.phase] ?? 1);
-        points += pts;
-        // Pontuação de antes do último dia de jogos (para o indicador de posição)
-        if (lastResultDay && brtDay(p.match_date) !== lastResultDay) prevPoints += pts;
-      } else losses++;
+        matchPts += POINTS_PER_CORRECT * (PHASE_MULTIPLIERS[p.phase] ?? 1);
+      } else {
+        losses++;
+      }
+
+      if (p.penaltyStatus === "correct") {
+        matchPts += POINTS_PER_CORRECT * (PHASE_MULTIPLIERS[p.phase] ?? 1);
+      }
+
+      points += matchPts;
+      // Pontuação de antes do último dia de jogos (para o indicador de posição)
+      if (lastResultDay && brtDay(p.match_date) !== lastResultDay) {
+        prevPoints += matchPts;
+      }
     }
 
     return {
@@ -309,7 +404,7 @@ export default function RankingPage() {
         await Promise.all([
           supabase.from("teams").select("id, name"),
           supabase.from("members").select("team_id, name"),
-          supabase.from("matches").select("id, home_team, away_team, result, score, match_date, phase"),
+          supabase.from("matches").select("id, home_team, away_team, result, score, match_date, phase, penalty_winner"),
           supabase.from("predictions").select("team_id, match_id, prob_home, prob_draw, prob_away"),
         ]);
 
